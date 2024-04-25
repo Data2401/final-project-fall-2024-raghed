@@ -131,17 +131,36 @@ vi_manuf2018plus_tibble
 vi_manuf2018plus_CategNaicsCode <- vi_manuf2018plus %>% 
   select(naics_code) %>%
   distinct()
-vi_manuf2018plus_CategNaicsCode
+
 
 vi_manuf2018plus_CategNaicsDesc <- vi_manuf2018plus %>% 
   select(naics_code_descr) %>%
   distinct()
-vi_manuf2018plus_CategNaicsDesc
 
+
+vi_manuf2018plus_RevCateg <- vi_manuf2018plus %>%
+  select(revenue_category) %>%
+  distinct()
+
+
+vi_manuf2018plus_EmplSize <- vi_manuf2018plus %>%
+  select(employee_size) %>%
+  distinct()
+
+
+vi_manuf2018plus_distinct <- list(
+  CategNaicsCode = unique(vi_manuf2018plus$naics_code),
+  CategNaicsDesc = unique(vi_manuf2018plus$naics_code_descr),
+  RevCateg = unique(vi_manuf2018plus$revenue_category),
+  EmplSize = unique(vi_manuf2018plus$employee_size)
+)
+vi_manuf2018plus_distinct
 ```
 ```{r 13 min max mean}
-# Find minimum and maximum number of businesses 
+# Filter the data for the specified categories and calculate the statistics
 vi_manuf2018plus_stat <- vi_manuf2018plus %>%
+  filter(naics_code_descr %in% c("Food Manufacturing", "Petroleum and Coal Products Manufacturing")) %>%
+  group_by(naics_code_descr) %>%
   summarise(
     min = min(number_of_biz, na.rm = TRUE),
     max = max(number_of_biz, na.rm = TRUE),
