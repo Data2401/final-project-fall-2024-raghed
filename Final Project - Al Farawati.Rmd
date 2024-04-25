@@ -9,17 +9,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## TITLE
-### Raghed Al Farawati
-### `r format(Sys.Date(), '%B %d, %Y')`
+# Trends and Success Patterns in 2018 Houston Manufacturing Businesses: An R Analysis
+# Raghed Al Farawati
+# `r format(Sys.Date(), '%B %d, %Y')`
 
 
-# Introduction
-In .docx
+## Introduction
+Have you wondered about the importance of trends in the businesses around you and how that could determine their degree of success? Manufacturing businesses are an important sector of our life where crucial aspects of it are dependent on these businesses. The Kinder Institute of Urban Research at Rice University in Houston has an interesting data set about the manufacturing businesses in Houston. The data set provides insight into the different business types and their corresponding revenue categories in 2018. 
+Analyzing the data will be done by using the R language and its dplyr and ggplot2 packages—known for data science, manipulation, and visualization—for trend analysis. Also, shiny, and plotly applications may be implemented for data visualization. These tools will illustrate trends of manufacturing businesses in Houston, emphasizing the successful businesses in the area. To sum up, analyzing this data and highlighting these trends will help many people, of them are individuals in academia who might use the trends in their studies and research. 
 
 
-# Packages Required
-In .docx
+
+## Packages Required
+The following packages are attached to the IDE for analyzing the data. 
 
 ```{r 2 libraries}
 suppressWarnings({ # warnings suppression is due to the assignment requirements 
@@ -35,16 +37,27 @@ suppressWarnings({ # warnings suppression is due to the assignment requirements
 ```
 
 
-# Data Preparation 
-In .docx
+## Data Preparation 
 
 **Source:** Data Axle & Kinder Institute For Urban Research-Urban Data Platform Team. (2021). Counts of Manufacturing Businesses - Houston MSA - 2018-2021 (Version 1) [dataset]. Rice University. <https://doi.org/10.25612/837.RDB506Y63571>.
 
 *Hold Shift + Click to open file.*
 
+One peculiarity that the website mentions about the source of the data:
+It is uncertain if a change in the number of firms inventoried from one year to the next is due to businesses emerging or vanishing in a specific location, or to changes in Data Axle's data-gathering procedures. The source datasets have a YrEstab (year established) variable, although it is null in 75% of the records. The YrAppYp (the year the business first appeared in the Yellow Pages directory) is never null, but it cannot be used to identify when a business was started; in this subset, it only equals the year established value (when known) in around 60% of cases.
+More information about the source of the data, according to the kinderup.org:
+The dataset is available for download on this website and is organized into three tables. Most users will just require the vi_manuf2018plus table. Users who wish to deal solely with coded values and a codebook should use the manuf2018plus and manuf2018plus_code tables.
+Please be aware that rows displaying subtotals for combinations of the naics_code, employee_size, and revenue_category variables are included.
+The 2018 dataset has a date stamp of 2/12/2019. The datasets for 2019, 2020, and 2021 include date stamps from May or June of their respective years.
+
+### Data Import 
+Data was imported to the IDE, and it has `r nrow(vi_manuf2018plus)` observations of `r ncol(vi_manuf2018plus)` variables.
+
+
 ```{r 3 glimpse}
 glimpse(vi_manuf2018plus) # glimpse function display info about the data set
 ```
+Now, data cleaning. The data set will be scanned and checked for any missing or duplicate values. But before that, checking data types in the data set comes first. 
 
 ```{r 4 data types}
 # view data types of columns 
@@ -52,20 +65,22 @@ data_types <- sapply(vi_manuf2018plus, class)
 data_types
 ```
 
-
-
 ```{r 5 missing values}
 # Check for missing values
 missing_val <- vi_manuf2018plus %>%
   summarize_all(function(x) sum(is.na(x)))
 missing_val
 ```
+Upon checking, `naics_code` column values seem to be `r sapply(naics_code, class)` character instead of numeric. So, there will be an appropriate conversion of these column values at the end of the cleaning process once all unwanted rows are dropped. 
+
+Now, check for missing values. 
+
 ```{r 6 del missing values}
 # deleting rows with missing values
 vi_manuf2018plus <- vi_manuf2018plus %>%
   na.omit()
 ```
-
+It seems that this data set has some missing values. These rows will be dropped from the data set. 
 
 ```{r 7 outliers}
 # Filter for outliers  
@@ -76,6 +91,7 @@ vi_manuf2018plus_outlier <- vi_manuf2018plus %>%
 total_count <- sum(grepl("Total", vi_manuf2018plus_outlier$revenue_category, ignore.case = TRUE))
 total_count
 ```
+Finally, upon visually checking for outliers, found an unusual value in the `revenue_category` column, which is “Total”, which looks oddly different than its column values. These values will be dropped as well. 
 
 ```{r 8 del outliers}
 vi_manuf2018plus <- vi_manuf2018plus %>%
@@ -86,6 +102,8 @@ vi_manuf2018plus <- vi_manuf2018plus %>%
 # Convert character values to numeric
 vi_manuf2018plus$naics_code <- as.numeric(vi_manuf2018plus$naics_code)
 ```
+All the variables will be used in the analysis.
+Here is a `tibble` display of the clean data. 
 
 ```{r 10 debug}
 # Check for missing values after data clean up
@@ -96,10 +114,10 @@ missing_val
 # Display data types for each column again to check
 data_types
 ```
-
+Fundamentally, yr is the year that the data was collected. `naics_code` and `naics_code_descr` are for the NAICS code mentioned above, and `revenue_category` has the revenues of those businesses categorized in different ranges. `employee_size` is a range of the number of employees in that company, while `number_of_biz` is the count of businesses in the criteria that is in the row. 
 
 ```{r 11 data tibble}
-# filter columns
+# illustrate data set as tibble
 vi_manuf2018plus_tibble <- as_tibble(vi_manuf2018plus)
 vi_manuf2018plus_tibble
 ```
@@ -107,11 +125,19 @@ vi_manuf2018plus_tibble
 ## Explatory Data Analysis 
 
 ```{r 12 diff categories}
-# Display different categories in the data set 
-vi_manuf2018plus_categories <- vi_manuf2018plus %>% 
-  select(naics_code, naics_code_descr, revenue_category, employee_size) %>%
+# Display distinct categories in each column 
+
+
+vi_manuf2018plus_CategNaicsCode <- vi_manuf2018plus %>% 
+  select(naics_code) %>%
   distinct()
-vi_manuf2018plus_categories
+vi_manuf2018plus_CategNaicsCode
+
+vi_manuf2018plus_CategNaicsDesc <- vi_manuf2018plus %>% 
+  select(naics_code_descr) %>%
+  distinct()
+vi_manuf2018plus_CategNaicsDesc
+
 ```
 ```{r 13 min max mean}
 # Find minimum and maximum number of businesses 
@@ -127,14 +153,14 @@ vi_manuf2018plus_stat
 ```{r 14 min max category}
 # Find which categories corresponds to min / max number of businesses
 vi_manuf2018plus_MinMaxCategory <- vi_manuf2018plus %>%
-  filter(number_of_biz == min(number_of_biz, na.rm = T) | number_of_biz == min(number_of_biz, na.rm = T)) %>%
+  filter(number_of_biz == min(number_of_biz, na.rm = TRUE) | number_of_biz == max(number_of_biz, na.rm = TRUE)) %>%
   select(naics_code_descr, revenue_category, number_of_biz)
 vi_manuf2018plus_MinMaxCategory
 ```
 ```{r 15 trend}
 # Find the trend of the number of businesses
 vi_manuf2018plus_trend <- vi_manuf2018plus %>%
-  filter(number_of_biz == min(number_of_biz, na.rm = T) | number_of_biz == min(number_of_biz, na.rm = T)) %>%
+  filter(number_of_biz == min(number_of_biz, na.rm = TRUE) | number_of_biz == max(number_of_biz, na.rm = TRUE)) %>%
   arrange(number_of_biz)
 vi_manuf2018plus_trend
 ```
