@@ -1,0 +1,61 @@
+---
+title: "Slides!"
+author: "Dr. Shoemaker"
+output:
+  slidy_presentation: 
+    highlight: kate
+  powerpoint_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# What is this? 
+
+in the rmd file, look at the YAML, you'll see that the output is listed as `slidy_presentation`. This is the output option that makes the html slide deck that you've seen in class. 
+
+The drop down arrow next to knit shows you the different options you have. 
+
+# R Markdown {.smaller}
+
+```{r}
+library(palmerpenguins)
+x <- "x"
+```
+
+There are `r nrow(penguins)` in the dataset
+
+
+This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+# Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+# Slide with R Output
+
+Each slides starts when you add a new heading or subheading. 
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+# See? New Slide.
+
+You can also manually break slides with three dashes
+
+---
+
+this makes a new slide too, one that doesn't have a heading. 
+
+# Slide with Plot
+
+
+```{r pressure}
+plot(pressure)
+```
+
