@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r 1 setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -21,7 +21,7 @@ In .docx
 # Packages Required
 In .docx
 
-```{r libraries}
+```{r 2 libraries}
 suppressWarnings({ # warnings suppression is due to the assignment requirements 
   library(rmarkdown) # this package is for dynamic markdown (.rmd) file
   library(tidyverse) # this package is main package for data manipulation and                           tidying 
@@ -40,35 +40,102 @@ In .docx
 
 **Source:** Data Axle & Kinder Institute For Urban Research-Urban Data Platform Team. (2021). Counts of Manufacturing Businesses - Houston MSA - 2018-2021 (Version 1) [dataset]. Rice University. <https://doi.org/10.25612/837.RDB506Y63571>.
 
-*Hold Shift key on keyboard for clicking the link*
+*Hold Shift + Click to open file.*
 
-
-
-
-
-```{r locate}
-# Locate files in the directory.
-getwd()
+```{r 3 glimpse}
+glimpse(vi_manuf2018plus) # glimpse function display info about the data set
 ```
 
-```{r load data}
-# Load the data set for project. 
-file_path1 <- "C:\\Users\\raghe\\OneDrive - University of Houston Downtown\\Documents\\Classes\\2023 - 2024\\Spring 2024\\DATA 2401-01 CRN #20969\\Course Work\\Final Project\\Final Project\\manuf2018plus.csv"
-manuf2018plus <- read_csv(file_path1)
-
-file_path2 <- "C:\\Users\\raghe\\OneDrive - University of Houston Downtown\\Documents\\Classes\\2023 - 2024\\Spring 2024\\DATA 2401-01 CRN #20969\\Course Work\\Final Project\\Final Project\\manuf2018plus_code.csv"
-manuf2018plus_code <- read_csv(file_path2)
-
-file_path3 <- "C:\\Users\\raghe\\OneDrive - University of Houston Downtown\\Documents\\Classes\\2023 - 2024\\Spring 2024\\DATA 2401-01 CRN #20969\\Course Work\\Final Project\\Final Project\\vi_manuf2018plus.csv"
-vi_manuf2018plus <- read_csv(file_path3)
-```
-```{r view data}
-glimpse(manuf2018plus)
-glimpse(manuf2018plus_code)
-glimpse(vi_manuf2018plus)
+```{r 4 data types}
+# view data types of columns 
+data_types <- sapply(vi_manuf2018plus, class)
+data_types
 ```
 
-```{r}
-Continue 
+
+
+```{r 5 missing values}
+# Check for missing values
+missing_val <- vi_manuf2018plus %>%
+  summarize_all(function(x) sum(is.na(x)))
+missing_val
+```
+```{r 6 del missing values}
+# deleting rows with missing values
+vi_manuf2018plus <- vi_manuf2018plus %>%
+  na.omit()
+```
+
+
+```{r 7 outliers}
+# Filter for outliers  
+vi_manuf2018plus_outlier <- vi_manuf2018plus %>%
+  filter(revenue_category == "Total")
+
+# Find occurrences of outliers
+total_count <- sum(grepl("Total", vi_manuf2018plus_outlier$revenue_category, ignore.case = TRUE))
+total_count
+```
+
+```{r 8 del outliers}
+vi_manuf2018plus <- vi_manuf2018plus %>%
+  filter(!grepl("Total", naics_code))
+```
+
+```{r 9 data convert}
+# Convert character values to numeric
+vi_manuf2018plus$naics_code <- as.numeric(vi_manuf2018plus$naics_code)
+```
+
+```{r 10 debug}
+# Check for missing values after data clean up
+missing_val <- vi_manuf2018plus %>%
+  summarize_all(function(x) sum(is.na(x)))
+missing_val
+
+# Display data types for each column again to check
+data_types
+```
+
+
+```{r 11 data tibble}
+# filter columns
+vi_manuf2018plus_tibble <- as_tibble(vi_manuf2018plus)
+vi_manuf2018plus_tibble
+```
+
+## Explatory Data Analysis 
+
+```{r 12 diff categories}
+# Display different categories in the data set 
+vi_manuf2018plus_categories <- vi_manuf2018plus %>% 
+  select(naics_code, naics_code_descr, revenue_category, employee_size) %>%
+  distinct()
+vi_manuf2018plus_categories
+```
+```{r 13 min max mean}
+# Find minimum and maximum number of businesses 
+vi_manuf2018plus_stat <- vi_manuf2018plus %>%
+  summarise(
+    min = min(number_of_biz, na.rm = TRUE),
+    max = max(number_of_biz, na.rm = TRUE),
+    mean = mean(number_of_biz, na.rm = TRUE)
+  )
+vi_manuf2018plus_stat
+```
+
+```{r 14 min max category}
+# Find which categories corresponds to min / max number of businesses
+vi_manuf2018plus_MinMaxCategory <- vi_manuf2018plus %>%
+  filter(number_of_biz == min(number_of_biz, na.rm = T) | number_of_biz == min(number_of_biz, na.rm = T)) %>%
+  select(naics_code_descr, revenue_category, number_of_biz)
+vi_manuf2018plus_MinMaxCategory
+```
+```{r 15 trend}
+# Find the trend of the number of businesses
+vi_manuf2018plus_trend <- vi_manuf2018plus %>%
+  filter(number_of_biz == min(number_of_biz, na.rm = T) | number_of_biz == min(number_of_biz, na.rm = T)) %>%
+  arrange(number_of_biz)
+vi_manuf2018plus_trend
 ```
 
