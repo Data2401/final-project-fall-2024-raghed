@@ -32,7 +32,6 @@ suppressWarnings({ # warnings suppression is due to the assignment requirements
   library(dplyr) # this package is for data manipulation  
   library(ggplot2) # this package is for data visualization 
   library(shiny)
-  library(purrr)
 })
 
 ```
