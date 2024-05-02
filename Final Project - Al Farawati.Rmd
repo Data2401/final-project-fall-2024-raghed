@@ -32,6 +32,7 @@ suppressWarnings({ # warnings suppression is due to the assignment requirements
   library(dplyr) # this package is for data manipulation  
   library(ggplot2) # this package is for data visualization 
   library(shiny)
+  library(purrr)
 })
 
 ```
@@ -156,6 +157,26 @@ vi_manuf2018plus_distinct <- list(
 )
 vi_manuf2018plus_distinct
 ```
+
+```{r 13 highest naics code}
+# Filter the data for the specified revenue categories
+vi_manuf2018plus_HighestCode <- vi_manuf2018plus %>%
+  filter(revenue_category %in% c("$500M-$1B", "Over $1B"))
+
+# Count the number of occurrences of each naics_code_descr
+vi_manuf2018plus_HighestCodeCount <- vi_manuf2018plus_HighestCode %>% 
+  group_by(naics_code_descr) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# Iterate over the rows of the dataframe and print the naics_code_descr and their counts
+apply(vi_manuf2018plus_HighestCodeCount, 1, function(row) {
+  cat(paste0(row["naics_code_descr"], " got ", row["count"], " times.\n"))
+})
+
+```
+
+
 ```{r 13 min max mean}
 # Filter the data for the specified categories and calculate the statistics
 vi_manuf2018plus_stat <- vi_manuf2018plus %>%
@@ -176,6 +197,7 @@ vi_manuf2018plus_MinMaxCategory <- vi_manuf2018plus %>%
   select(naics_code_descr, revenue_category, number_of_biz)
 vi_manuf2018plus_MinMaxCategory
 ```
+
 ```{r 15 trend}
 # Find the trend of the number of businesses
 vi_manuf2018plus_trend <- vi_manuf2018plus %>%
