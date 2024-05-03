@@ -24,16 +24,13 @@ Analyzing the data will be done by using the R language and its dplyr and ggplot
 The following packages are attached to the IDE for analyzing the data. 
 
 ```{r 2 libraries}
-suppressWarnings({ # warnings suppression is due to the assignment requirements 
-  library(rmarkdown) # this package is for dynamic markdown (.rmd) file
-  library(tidyverse) # this package is main package for data manipulation and                           tidying 
-  library(tidyr) # this package is for tidying the data
-  library(tibble) # this package is for creating tibbles and re-imaging the data                     frame
-  library(dplyr) # this package is for data manipulation  
-  library(ggplot2) # this package is for data visualization 
-  library(shiny)
-})
-
+library(rmarkdown, quietly = TRUE) # this package is for dynamic markdown (.rmd)                                      file
+library(tidyverse, quietly = TRUE) # this package is main package for data                                           manipulation and tidying 
+library(tidyr, quietly = TRUE)     # this package is for tidying the data
+library(tibble, quietly = TRUE)    # this package is for creating tibbles and                                        re-imaging the data frame
+library(dplyr, quietly = TRUE)     # this package is for data manipulation  
+library(ggplot2, quietly = TRUE)   # this package is for data visualization 
+library(shiny, quietly = TRUE)     # this package is for dynamic visualization
 ```
 
 
@@ -55,153 +52,239 @@ Data was imported to the IDE, and it has `r nrow(vi_manuf2018plus)` observations
 
 
 ```{r 3 glimpse}
-glimpse(vi_manuf2018plus) # glimpse function display info about the data set
+# glimpse function display info about the data set
+glimpse(vi_manuf2018plus) 
 ```
 Now, data cleaning. The data set will be scanned and checked for any missing or duplicate values. But before that, checking data types in the data set comes first. 
 
 ```{r 4 data types}
 # view data types of columns 
 data_types <- sapply(vi_manuf2018plus, class)
+
+# print
 data_types
 ```
+Now, check for missing values. 
+
 
 ```{r 5 missing values}
-# Check for missing values
+# check for missing values
 missing_val <- vi_manuf2018plus %>%
   summarize_all(function(x) sum(is.na(x)))
+
+# print
 missing_val
 ```
-Upon checking, `naics_code` column values seem to be `r sapply(naics_code, class)` character instead of numeric. So, there will be an appropriate conversion of these column values at the end of the cleaning process once all unwanted rows are dropped. 
 
-Now, check for missing values. 
 
 ```{r 6 del missing values}
 # deleting rows with missing values
-vi_manuf2018plus <- vi_manuf2018plus %>%
-  na.omit()
+vi_manuf2018plus <- na.omit(vi_manuf2018plus)
 ```
 It seems that this data set has some missing values. These rows will be dropped from the data set. 
 
 ```{r 7 outliers}
-# Filter for outliers  
-vi_manuf2018plus_outlier <- vi_manuf2018plus %>%
-  filter(revenue_category == "Total")
+# filter for outliers  
+outliers <- vi_manuf2018plus %>%
+  apply(2, function(x) !any(str_detect(x, regex("Total", ignore_case = TRUE))))
 
-# Find occurrences of outliers
-total_count <- sum(grepl("Total", vi_manuf2018plus_outlier$revenue_category, ignore.case = TRUE))
-total_count
+# find the occurrences of outliers
+outliers_total_count <- sum(apply(vi_manuf2018plus, 2, function(x) grepl("Total", x, ignore.case = TRUE)))
+
+# print
+outliers_total_count 
 ```
 Finally, upon visually checking for outliers, found an unusual value in the `revenue_category` column, which is “Total”, which looks oddly different than its column values. These values will be dropped as well. 
 
 ```{r 8 del outliers}
+# delete the outliers values from the data set
 vi_manuf2018plus <- vi_manuf2018plus %>%
-  filter(!grepl("Total", naics_code))
+  rowwise() %>%
+  filter(!any(str_detect(across(everything()), regex("Total", ignore_case = TRUE))))
+
+# assign the outliers count variable to the deletion code for later inspection
+outliers_total_count <- sum(apply(vi_manuf2018plus, 2, function(x) any(str_detect(x, regex("Total", ignore_case = TRUE)))))
 ```
 
-```{r 9 data convert}
-# Convert character values to numeric
-vi_manuf2018plus$naics_code <- as.numeric(vi_manuf2018plus$naics_code)
-```
+
 All the variables will be used in the analysis.
 Here is a `tibble` display of the clean data. 
 
-```{r 10 debug}
-# Check for missing values after data clean up
-missing_val <- vi_manuf2018plus %>%
-  summarize_all(function(x) sum(is.na(x)))
-missing_val
+```{r 9 debug}
+# check and debug after data clean up
 
-# Display data types for each column again to check
+# check for missing values 
+# calculate the total number of NA values in the data set
+total_na <- sum(is.na(vi_manuf2018plus))
+
+# print the total number of NA values
+total_na
+
+
+# check outliers number of occurrences
+outliers_total_count
+
+# check data types for each column again to check
 data_types
 ```
 Fundamentally, yr is the year that the data was collected. `naics_code` and `naics_code_descr` are for the NAICS code mentioned above, and `revenue_category` has the revenues of those businesses categorized in different ranges. `employee_size` is a range of the number of employees in that company, while `number_of_biz` is the count of businesses in the criteria that is in the row. 
 
-```{r 11 data tibble}
+```{r 10 data tibble}
 # illustrate data set as tibble
-vi_manuf2018plus_tibble <- as_tibble(vi_manuf2018plus)
-vi_manuf2018plus_tibble
+tibble <- as_tibble(vi_manuf2018plus)
+
+# print
+tibble
 ```
 
 ## Explatory Data Analysis 
 
-```{r 12 diff categories}
-# Display distinct categories in each column 
+```{r 11 distinct categories}
+# find distinct categories in each column 
 
-
-vi_manuf2018plus_CategNaicsCode <- vi_manuf2018plus %>% 
+# for naics code
+descr_categories <- vi_manuf2018plus %>% 
   select(naics_code) %>%
   distinct()
 
-
-vi_manuf2018plus_CategNaicsDesc <- vi_manuf2018plus %>% 
-  select(naics_code_descr) %>%
-  distinct()
-
-
-vi_manuf2018plus_RevCateg <- vi_manuf2018plus %>%
+# for revenue category
+revenue_categories <- vi_manuf2018plus %>%
   select(revenue_category) %>%
   distinct()
 
-
-vi_manuf2018plus_EmplSize <- vi_manuf2018plus %>%
+# for employee size 
+empl_size_categories <- vi_manuf2018plus %>%
   select(employee_size) %>%
   distinct()
 
-
-vi_manuf2018plus_distinct <- list(
-  CategNaicsCode = unique(vi_manuf2018plus$naics_code),
-  CategNaicsDesc = unique(vi_manuf2018plus$naics_code_descr),
-  RevCateg = unique(vi_manuf2018plus$revenue_category),
-  EmplSize = unique(vi_manuf2018plus$employee_size)
+# combine all variables of distinct occurrences into a list
+distinct <- list(
+  code_categories       = unique(vi_manuf2018plus$naics_code),
+  descr_categories      = unique(vi_manuf2018plus$naics_code_descr),
+  revenue_categories    = unique(vi_manuf2018plus$revenue_category),
+  empl_size_categories  = unique(vi_manuf2018plus$employee_size)
 )
-vi_manuf2018plus_distinct
+
+# print 
+distinct
 ```
 
-```{r 13 highest naics code}
-# Filter the data for the specified revenue categories
-vi_manuf2018plus_HighestCode <- vi_manuf2018plus %>%
-  filter(revenue_category %in% c("$500M-$1B", "Over $1B"))
 
-# Count the number of occurrences of each naics_code_descr
-vi_manuf2018plus_HighestCodeCount <- vi_manuf2018plus_HighestCode %>% 
-  group_by(naics_code_descr) %>%
-  summarise(count = n()) %>%
+
+```{r 12 empl size analysis}
+if(FALSE){
+# perform the employee size analysis
+empl_size_analysis <- vi_manuf2018plus %>%
+  group_by(yr, naics_code_descr, employee_size) %>%
+  summarise(count = n(), .groups = "drop") %>%
   arrange(desc(count))
 
-# Iterate over the rows of the dataframe and print the naics_code_descr and their counts
-apply(vi_manuf2018plus_HighestCodeCount, 1, function(row) {
-  cat(paste0(row["naics_code_descr"], " got ", row["count"], " times.\n"))
-})
+# Convert employee_size to a factor
+empl_size_analysis$employee_size <- as.factor(empl_size_analysis$employee_size)
+
+# glimpse the result
+glimpse(empl_size_analysis)
+} 
+
+
+
+# code I might need 
+
+if(FALSE){
+  # Your code here
+}
 
 ```
 
 
-```{r 13 min max mean}
-# Filter the data for the specified categories and calculate the statistics
-vi_manuf2018plus_stat <- vi_manuf2018plus %>%
-  filter(naics_code_descr %in% c("Food Manufacturing", "Petroleum and Coal Products Manufacturing")) %>%
+```{r 13 empl size analysis plot}
+if(FALSE){
+# stacked bar plot of the employee size analysis
+empl_size_plot <- ggplot(empl_size_analysis, aes(x = yr, y = count, fill = employee_size)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Employee Size Analysis", x = "Year", y = "Count", fill = "Employee Size") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# view 
+empl_size_plot
+}
+```
+
+
+```{r yearly growth }
+# finding the yearly growth
+yearly_growth <- vi_manuf2018plus %>%
+  group_by(yr, naics_code_descr) %>%
+  summarise(number_of_biz = sum(number_of_biz)) %>%
+  mutate(growth_rate = (number_of_biz - lag(number_of_biz)) / lag(number_of_biz) * 100)
+
+# Print the result
+yearly_growth
+
+```
+
+
+```{r}
+yearly_growth_plot <- ggplot(yearly_growth_analysis, aes(x = yr, y = growth_rate, color = naics_code_descr)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Yearly Growth Analysis", x = "Year", y = "Growth Rate (%)", color = "NAICS Code Description") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+yearly_growth_plot
+```
+
+
+```{r num of biz analysis}
+# Perform the business analysis
+num_of_biz_analysis <- vi_manuf2018plus %>%
   group_by(naics_code_descr) %>%
-  summarise(
-    min = min(number_of_biz, na.rm = TRUE),
-    max = max(number_of_biz, na.rm = TRUE),
-    mean = mean(number_of_biz, na.rm = TRUE)
-  )
-vi_manuf2018plus_stat
+  summarise(total_number_of_biz = sum(number_of_biz)) %>%
+  arrange(desc(total_number_of_biz))
+
+# Print the result
+num_of_biz_analysis
+
 ```
 
-```{r 14 min max category}
-# Find which categories corresponds to min / max number of businesses
-vi_manuf2018plus_MinMaxCategory <- vi_manuf2018plus %>%
-  filter(number_of_biz == min(number_of_biz, na.rm = TRUE) | number_of_biz == max(number_of_biz, na.rm = TRUE)) %>%
-  select(naics_code_descr, revenue_category, number_of_biz)
-vi_manuf2018plus_MinMaxCategory
+
+```{r}
+num_of_biz_plot <- ggplot(business_analysis, aes(x = yr, y = number_of_biz, color = naics_code_descr)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Business Analysis", x = "Year", y = "Number of Businesses", color = "NAICS Code Description") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+num_of_biz_plot
 ```
 
-```{r 15 trend}
-# Find the trend of the number of businesses
-vi_manuf2018plus_trend <- vi_manuf2018plus %>%
-  filter(number_of_biz == min(number_of_biz, na.rm = TRUE) | number_of_biz == max(number_of_biz, na.rm = TRUE)) %>%
-  arrange(number_of_biz)
-vi_manuf2018plus_trend
+
+```{r 13 revenue per biz}
+# calculate the revenue per business for each category
+revenue_per_biz <- vi_manuf2018plus %>%
+  mutate(revenue_per_biz = ifelse(number_of_biz != 0, revenue_numeric / number_of_biz, 0))
+
+# Calculate the average revenue per business for each category
+revenue_per_biz <- vi_manuf2018plus %>%
+  group_by(naics_code_descr) %>%
+  summarise(avg_revenue_per_biz = mean(revenue_per_biz, na.rm = TRUE)) %>%
+  arrange(desc(avg_revenue_per_biz))
+
+# Print the average revenue per business for each category
+revenue_per_biz
+
+```
+The average revenue per business can indeed be a measure of success, but it’s important to note that it’s not the only measure. A higher average revenue per business generally indicates that the businesses in that category are able to generate more revenue, which could be a sign of success. However, this doesn’t necessarily mean that they are more profitable, as they could also have higher costs.
+
+```{r}
+revenue_per_biz_plot <- ggplot(revenue_per_biz, aes(x = yr, y = revenue_per_business, color = naics_code_descr)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Revenue per Business Analysis", x = "Year", y = "Revenue per Business", color = "NAICS Code Description") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+revenue_per_biz_plot
+
 ```
 
