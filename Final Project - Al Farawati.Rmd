@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r 1 setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -23,7 +23,7 @@ Analyzing the data will be done by using the R language and its dplyr and ggplot
 ## Packages Required
 The following packages are attached to the IDE for analyzing the data. 
 
-```{r 2 libraries}
+```{r 1 libraries}
 library(rmarkdown, quietly = TRUE) # this package is for dynamic markdown (.rmd)                                      file
 library(tidyverse, quietly = TRUE) # this package is main package for data                                           manipulation and tidying 
 library(tidyr, quietly = TRUE)     # this package is for tidying the data
@@ -31,10 +31,19 @@ library(tibble, quietly = TRUE)    # this package is for creating tibbles and   
 library(dplyr, quietly = TRUE)     # this package is for data manipulation  
 library(ggplot2, quietly = TRUE)   # this package is for data visualization 
 library(shiny, quietly = TRUE)     # this package is for dynamic visualization
+library(readr, quietly = TRUE)     # this package is for reading data from
+                                   # delimited file, such as .csv file
+library(stringr, quietly = TRUE)   # this package is for 
 ```
 
 
 ## Data Preparation 
+
+```{r 2 load data}
+library(readr)
+vi_manuf2018plus <- read_csv("vi_manuf2018plus.csv")
+View(vi_manuf2018plus)
+```
 
 **Source:** Data Axle & Kinder Institute For Urban Research-Urban Data Platform Team. (2021). Counts of Manufacturing Businesses - Houston MSA - 2018-2021 (Version 1) [dataset]. Rice University. <https://doi.org/10.25612/837.RDB506Y63571>.
 
@@ -171,7 +180,7 @@ distinct
 
 
 
-```{r 12 empl size analysis}
+```{r 12.1 empl size analysis}
 if(FALSE){
 # perform the employee size analysis
 empl_size_analysis <- vi_manuf2018plus %>%
@@ -197,7 +206,7 @@ if(FALSE){
 ```
 
 
-```{r 13 empl size analysis plot}
+```{r 12.2 empl size analysis plot}
 if(FALSE){
 # stacked bar plot of the employee size analysis
 empl_size_plot <- ggplot(empl_size_analysis, aes(x = yr, y = count, fill = employee_size)) +
@@ -212,27 +221,36 @@ empl_size_plot
 ```
 
 
-```{r yearly growth }
+```{r 13.1 yearly growth}
 # finding the yearly growth
 yearly_growth <- vi_manuf2018plus %>%
   group_by(yr, naics_code_descr) %>%
-  summarise(number_of_biz = sum(number_of_biz)) %>%
-  mutate(growth_rate = (number_of_biz - lag(number_of_biz)) / lag(number_of_biz) * 100)
+  summarise(number_of_biz = sum(number_of_biz), .groups = "drop") %>%
+  mutate(growth_rate = paste0(round(((number_of_biz - lag(number_of_biz)) / lag(number_of_biz)) * 100, 4), "%"))
 
 # Print the result
 yearly_growth
-
 ```
 
 
 ```{r}
-yearly_growth_plot <- ggplot(yearly_growth_analysis, aes(x = yr, y = growth_rate, color = naics_code_descr)) +
+yearly_growth$growth_rate <- as.numeric(str_remove(yearly_growth$growth_rate, "%"))
+
+
+# Convert yr to numeric and naics_code_descr to factor
+yearly_growth$yr <- as.numeric(yearly_growth$yr)
+yearly_growth$naics_code_descr <- as.factor(yearly_growth$naics_code_descr)
+
+ggplot(yearly_growth, aes(x = yr, y = growth_rate, color = naics_code_descr)) +
   geom_line() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
+  labs(title = "Yearly Growth Rate by Business Category",
+       x = "Year",
+       y = "Growth Rate (%)",
+       color = "Business Category") +
   theme_minimal() +
-  labs(title = "Yearly Growth Analysis", x = "Year", y = "Growth Rate (%)", color = "NAICS Code Description") +
   theme(plot.title = element_text(hjust = 0.5))
 
-yearly_growth_plot
 ```
 
 
