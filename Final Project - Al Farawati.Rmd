@@ -23,6 +23,11 @@ Analyzing the data will be done by using the R language and its dplyr and ggplot
 ## Packages Required
 The following packages are attached to the IDE for analyzing the data. 
 
+```{r}
+install.packages("viridis")
+```
+
+
 ```{r 1 libraries}
 library(rmarkdown, quietly = TRUE) # this package is for dynamic markdown (.rmd)                                      file
 library(tidyverse, quietly = TRUE) # this package is main package for data                                           manipulation and tidying 
@@ -30,10 +35,13 @@ library(tidyr, quietly = TRUE)     # this package is for tidying the data
 library(tibble, quietly = TRUE)    # this package is for creating tibbles and                                        re-imaging the data frame
 library(dplyr, quietly = TRUE)     # this package is for data manipulation  
 library(ggplot2, quietly = TRUE)   # this package is for data visualization 
-library(shiny, quietly = TRUE)     # this package is for dynamic visualization
+library(plotly, quietly = TRUE)    # this package is for interactive plots
+library(scales, quietly = TRUE)    # this package is for scaling data 
+library(colorspace, quietly = TRUE)   
+                                   # this package is for color plalette for                                          large number of categories for                                                  visualization
 library(readr, quietly = TRUE)     # this package is for reading data from
                                    # delimited file, such as .csv file
-library(stringr, quietly = TRUE)   # this package is for 
+library(stringr, quietly = TRUE)   # this package is for text data, for the                                          `str_remove()` function in the code
 ```
 
 
@@ -206,7 +214,7 @@ if(FALSE){
 ```
 
 
-```{r 12.2 empl size analysis plot}
+```{r 12.2 plot}
 if(FALSE){
 # stacked bar plot of the employee size analysis
 empl_size_plot <- ggplot(empl_size_analysis, aes(x = yr, y = count, fill = employee_size)) +
@@ -228,31 +236,75 @@ yearly_growth <- vi_manuf2018plus %>%
   summarise(number_of_biz = sum(number_of_biz), .groups = "drop") %>%
   mutate(growth_rate = paste0(round(((number_of_biz - lag(number_of_biz)) / lag(number_of_biz)) * 100, 4), "%"))
 
+# Create a new column with abbreviated labels
+yearly_growth$short_descr <- abbreviate(yearly_growth$naics_code_descr)
+
 # Print the result
 yearly_growth
 ```
 
-
 ```{r}
-yearly_growth$growth_rate <- as.numeric(str_remove(yearly_growth$growth_rate, "%"))
-
-
-# Convert yr to numeric and naics_code_descr to factor
-yearly_growth$yr <- as.numeric(yearly_growth$yr)
-yearly_growth$naics_code_descr <- as.factor(yearly_growth$naics_code_descr)
-
-ggplot(yearly_growth, aes(x = yr, y = growth_rate, color = naics_code_descr)) +
-  geom_line() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
-  labs(title = "Yearly Growth Rate by Business Category",
-       x = "Year",
-       y = "Growth Rate (%)",
-       color = "Business Category") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
+
+
+```{r 13.2 plot}
+# exclude rows with NA growth_rate
+yearly_growth <- yearly_growth %>% filter(!is.na(growth_rate))
+yearly_growth <- yearly_growth %>% filter(!is.na(number_of_biz))
+
+# Convert growth_rate to numeric
+yearly_growth$growth_rate <- as.numeric(str_remove(yearly_growth$growth_rate, "%"))
+
+# Convert yr to numeric and naics_code_descr to factor
+yearly_growth$naics_code_descr <- as.factor(yearly_growth$naics_code_descr)
+
+# Sort the data frame by yr
+yearly_growth <- yearly_growth %>% arrange(yr) 
+
+
+# Create the plotly plot
+plot_ly(yearly_growth, x = ~yr, y = ~growth_rate, type = 'bar', marker = list(color = ~growth_rate, colorscale = 'Bluered')) %>%
+  layout(title = "Yearly Growth Rate by Business Category",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Growth Rate (%)"))
+```
+
+
+```{r}
+# Create the plotly plot
+plot_ly(yearly_growth, x = ~ yr, y = ~growth_rate, type = 'scatter', mode = 'markers', marker = list(color = ~ 'black')) %>%
+  layout(title = "Yearly Growth Rate by Business Category",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Growth Rate (%)"))
+```
+
+
+```{r}
+
+# Create the ggplot
+ggplot(yearly_growth, aes(x = as.factor(yr), y = growth_rate)) +
+  geom_boxplot(fill = "grey") +
+  labs(title = "Yearly Growth Rate by Business Category", x = "Year", y = "Growth Rate (%)")
+
+```
+
+
+```{r}
+ggplot(yearly_growth, aes(x = reorder(short_descr, -growth_rate), y = growth_rate)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Category", y = "Growth Rate (%)", title = "Growth Rate by Category") +
+  scale_y_continuous(labels = scales::percent)
+```
+
+```{r}
+plot_ly(yearly_growth, x = ~reorder(short_descr, -growth_rate), y = ~growth_rate, type = 'bar', name = 'Growth Rate') %>%
+  layout(title = "Growth Rate by Category",
+         xaxis = list(title = "Category"),
+         yaxis = list(title = "Growth Rate (%)"))
+```
 
 ```{r num of biz analysis}
 # Perform the business analysis
@@ -261,6 +313,10 @@ num_of_biz_analysis <- vi_manuf2018plus %>%
   summarise(total_number_of_biz = sum(number_of_biz)) %>%
   arrange(desc(total_number_of_biz))
 
+# Create a new column with abbreviated labels
+num_of_biz_analysis$short_descr <- abbreviate(num_of_biz_analysis$naics_code_descr)
+
+
 # Print the result
 num_of_biz_analysis
 
@@ -268,41 +324,82 @@ num_of_biz_analysis
 
 
 ```{r}
-num_of_biz_plot <- ggplot(business_analysis, aes(x = yr, y = number_of_biz, color = naics_code_descr)) +
-  geom_line() +
+# Create a bar plot
+ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = total_number_of_biz, fill = short_descr)) +
+  geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Business Analysis", x = "Year", y = "Number of Businesses", color = "NAICS Code Description") +
-  theme(plot.title = element_text(hjust = 0.5))
+  labs(title = "Number of Business Analysis", x = "NAICS Code Description", y = "Number of Businesses", fill = "NAICS Code Description") +
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, hjust = 1))
 
-num_of_biz_plot
+
+```
+
+```{r}
+
+# Create a plotly bar plot
+plot_ly(num_of_biz_analysis, x = ~reorder(short_descr, -total_number_of_biz), y = ~total_number_of_biz, type = 'bar', name = 'Total Number of Businesses') %>%
+  layout(title = "Number of Business Analysis",
+         xaxis = list(title = "NAICS Code Description"),
+         yaxis = list(title = "Total Number of Businesses"))
+
+```
+
+```{r}
+ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = short_descr)) +
+  geom_point(color = 'steelblue') +
+  labs(title = "Total Number of Businesses by Category", x = "Business Category", y = "Total Number of Businesses") +
+  coord_flip()
+
+```
+
+```{r}
+plot_ly(num_of_biz_analysis, x = ~total_number_of_biz, y = ~short_descr, type = 'bar', orientation = 'a') %>%
+  layout(title = "Total Number of Businesses by Category",
+         xaxis = list(title = "Total Number of Businesses"),
+         yaxis = list(title = "Business Category"))
 ```
 
 
 ```{r 13 revenue per biz}
-# calculate the revenue per business for each category
-revenue_per_biz <- vi_manuf2018plus %>%
-  mutate(revenue_per_biz = ifelse(number_of_biz != 0, revenue_numeric / number_of_biz, 0))
 
+# Assign a unique numeric ID to each revenue category
+vi_manuf2018plus <- vi_manuf2018plus %>%
+  mutate(revenue_category_id = as.numeric(factor(revenue_category)))
+
+# calculate the revenue per business for each category
+vi_manuf2018plus <- vi_manuf2018plus %>%
+  mutate(revenue_per_biz = ifelse(number_of_biz != 0, revenue_category_id / number_of_biz, 0))
+  
 # Calculate the average revenue per business for each category
 revenue_per_biz <- vi_manuf2018plus %>%
   group_by(naics_code_descr) %>%
   summarise(avg_revenue_per_biz = mean(revenue_per_biz, na.rm = TRUE)) %>%
   arrange(desc(avg_revenue_per_biz))
 
+# Create a new column with abbreviated labels
+revenue_per_biz$short_descr <- abbreviate(revenue_per_biz$naics_code_descr)
+
 # Print the average revenue per business for each category
 revenue_per_biz
+
 
 ```
 The average revenue per business can indeed be a measure of success, but it’s important to note that it’s not the only measure. A higher average revenue per business generally indicates that the businesses in that category are able to generate more revenue, which could be a sign of success. However, this doesn’t necessarily mean that they are more profitable, as they could also have higher costs.
 
 ```{r}
-revenue_per_biz_plot <- ggplot(revenue_per_biz, aes(x = yr, y = revenue_per_business, color = naics_code_descr)) +
-  geom_line() +
-  theme_minimal() +
-  labs(title = "Revenue per Business Analysis", x = "Year", y = "Revenue per Business", color = "NAICS Code Description") +
-  theme(plot.title = element_text(hjust = 0.5))
+# Create a plotly bar plot
+plot_ly(revenue_per_biz, x = ~reorder(short_descr, -avg_revenue_per_biz), y = ~avg_revenue_per_biz, type = 'bar', name = 'Average Revenue per Business') %>%
+  layout(title = "Average Revenue per Business for Each Category",
+         xaxis = list(title = "NAICS Code Description"),
+         yaxis = list(title = "Average Revenue per Business"))
 
-revenue_per_biz_plot
+```
 
+
+```{r}
+plot_ly(revenue_per_biz, x = ~short_descr, y = ~avg_revenue_per_biz, type = 'scatter', mode = 'markers', name = 'Average Revenue per Business') %>%
+  layout(title = "Average Revenue per Business for Each Category",
+         xaxis = list(title = "NAICS Code Description"),
+         yaxis = list(title = "Average Revenue per Business"))
 ```
 
