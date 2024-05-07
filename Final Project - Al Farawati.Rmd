@@ -42,7 +42,7 @@ library(colorspace, quietly = TRUE)
 library(readr, quietly = TRUE)     # this package is for reading data from
                                    # delimited file, such as .csv file
 library(stringr, quietly = TRUE)   # this package is for text data, for the                                          `str_remove()` function in the code
-```
+``` 
 
 
 ## Data Preparation 
