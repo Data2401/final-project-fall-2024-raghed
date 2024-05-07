@@ -187,49 +187,7 @@ distinct
 ```
 
 
-
-```{r 12.1 empl size analysis}
-if(FALSE){
-# perform the employee size analysis
-empl_size_analysis <- vi_manuf2018plus %>%
-  group_by(yr, naics_code_descr, employee_size) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  arrange(desc(count))
-
-# Convert employee_size to a factor
-empl_size_analysis$employee_size <- as.factor(empl_size_analysis$employee_size)
-
-# glimpse the result
-glimpse(empl_size_analysis)
-} 
-
-
-
-# code I might need 
-
-if(FALSE){
-  # Your code here
-}
-
-```
-
-
-```{r 12.2 plot}
-if(FALSE){
-# stacked bar plot of the employee size analysis
-empl_size_plot <- ggplot(empl_size_analysis, aes(x = yr, y = count, fill = employee_size)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  labs(title = "Employee Size Analysis", x = "Year", y = "Count", fill = "Employee Size") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-# view 
-empl_size_plot
-}
-```
-
-
-```{r 13.1 yearly growth}
+```{r 12.1 yearly growth}
 # finding the yearly growth
 yearly_growth <- vi_manuf2018plus %>%
   group_by(yr, naics_code_descr) %>%
@@ -243,13 +201,8 @@ yearly_growth$short_descr <- abbreviate(yearly_growth$naics_code_descr)
 yearly_growth
 ```
 
-```{r}
 
-```
-
-
-
-```{r 13.2 plot}
+```{r 12.2 plot}
 # exclude rows with NA growth_rate
 yearly_growth <- yearly_growth %>% filter(!is.na(growth_rate))
 yearly_growth <- yearly_growth %>% filter(!is.na(number_of_biz))
@@ -272,7 +225,7 @@ plot_ly(yearly_growth, x = ~yr, y = ~growth_rate, type = 'bar', marker = list(co
 ```
 
 
-```{r}
+```{r 12.3 plot}
 # Create the plotly plot
 plot_ly(yearly_growth, x = ~ yr, y = ~growth_rate, type = 'scatter', mode = 'markers', marker = list(color = ~ 'black')) %>%
   layout(title = "Yearly Growth Rate by Business Category",
@@ -281,7 +234,7 @@ plot_ly(yearly_growth, x = ~ yr, y = ~growth_rate, type = 'scatter', mode = 'mar
 ```
 
 
-```{r}
+```{r 12.4 plot}
 
 # Create the ggplot
 ggplot(yearly_growth, aes(x = as.factor(yr), y = growth_rate)) +
@@ -291,7 +244,7 @@ ggplot(yearly_growth, aes(x = as.factor(yr), y = growth_rate)) +
 ```
 
 
-```{r}
+```{r 12.5 plot}
 ggplot(yearly_growth, aes(x = reorder(short_descr, -growth_rate), y = growth_rate)) +
   geom_bar(stat = "identity", fill = "steelblue") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -299,14 +252,14 @@ ggplot(yearly_growth, aes(x = reorder(short_descr, -growth_rate), y = growth_rat
   scale_y_continuous(labels = scales::percent)
 ```
 
-```{r}
+```{r 12.6 plot}
 plot_ly(yearly_growth, x = ~reorder(short_descr, -growth_rate), y = ~growth_rate, type = 'bar', name = 'Growth Rate') %>%
   layout(title = "Growth Rate by Category",
          xaxis = list(title = "Category"),
          yaxis = list(title = "Growth Rate (%)"))
 ```
 
-```{r num of biz analysis}
+```{r 13.1 num of biz analysis}
 # Perform the business analysis
 num_of_biz_analysis <- vi_manuf2018plus %>%
   group_by(naics_code_descr) %>%
@@ -323,7 +276,7 @@ num_of_biz_analysis
 ```
 
 
-```{r}
+```{r 13.2 plot}
 # Create a bar plot
 ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = total_number_of_biz, fill = short_descr)) +
   geom_bar(stat = "identity") +
@@ -334,7 +287,7 @@ ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), 
 
 ```
 
-```{r}
+```{r 13.3 plot}
 
 # Create a plotly bar plot
 plot_ly(num_of_biz_analysis, x = ~reorder(short_descr, -total_number_of_biz), y = ~total_number_of_biz, type = 'bar', name = 'Total Number of Businesses') %>%
@@ -344,7 +297,7 @@ plot_ly(num_of_biz_analysis, x = ~reorder(short_descr, -total_number_of_biz), y 
 
 ```
 
-```{r}
+```{r 13.4 plot}
 ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = short_descr)) +
   geom_point(color = 'steelblue') +
   labs(title = "Total Number of Businesses by Category", x = "Business Category", y = "Total Number of Businesses") +
@@ -352,15 +305,15 @@ ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), 
 
 ```
 
-```{r}
+```{r 13.5 plot}
 plot_ly(num_of_biz_analysis, x = ~total_number_of_biz, y = ~short_descr, type = 'bar', orientation = 'a') %>%
   layout(title = "Total Number of Businesses by Category",
          xaxis = list(title = "Total Number of Businesses"),
          yaxis = list(title = "Business Category"))
 ```
 
-
-```{r 13 revenue per biz}
+ 
+```{r 14.1 revenue per biz}
 
 # Assign a unique numeric ID to each revenue category
 vi_manuf2018plus <- vi_manuf2018plus %>%
@@ -386,7 +339,7 @@ revenue_per_biz
 ```
 The average revenue per business can indeed be a measure of success, but it’s important to note that it’s not the only measure. A higher average revenue per business generally indicates that the businesses in that category are able to generate more revenue, which could be a sign of success. However, this doesn’t necessarily mean that they are more profitable, as they could also have higher costs.
 
-```{r}
+```{r 14.2 plot}
 # Create a plotly bar plot
 plot_ly(revenue_per_biz, x = ~reorder(short_descr, -avg_revenue_per_biz), y = ~avg_revenue_per_biz, type = 'bar', name = 'Average Revenue per Business') %>%
   layout(title = "Average Revenue per Business for Each Category",
@@ -396,7 +349,7 @@ plot_ly(revenue_per_biz, x = ~reorder(short_descr, -avg_revenue_per_biz), y = ~a
 ```
 
 
-```{r}
+```{r 14.3 plot}
 plot_ly(revenue_per_biz, x = ~short_descr, y = ~avg_revenue_per_biz, type = 'scatter', mode = 'markers', name = 'Average Revenue per Business') %>%
   layout(title = "Average Revenue per Business for Each Category",
          xaxis = list(title = "NAICS Code Description"),
