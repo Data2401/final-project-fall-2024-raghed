@@ -2,31 +2,25 @@
 title: "Final Project"
 author: "Raghed Al Farawati"
 date: "`r Sys.Date()`"
-output: html_document
+output: 
+  html_document: 
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Trends and Success Patterns in 2018 Houston Manufacturing Businesses: An R Analysis
-# Raghed Al Farawati
-# `r format(Sys.Date(), '%B %d, %Y')`
-
+# Trends and Success Patterns in Houston Manufacturing Businesses: An R Analysis
+### Raghed Al Farawati
+### `r format(Sys.Date(), '%B %d, %Y')`
 
 ## Introduction
-Have you wondered about the importance of trends in the businesses around you and how that could determine their degree of success? Manufacturing businesses are an important sector of our life where crucial aspects of it are dependent on these businesses. The Kinder Institute of Urban Research at Rice University in Houston has an interesting data set about the manufacturing businesses in Houston. The data set provides insight into the different business types and their corresponding revenue categories in 2018. 
+Have you wondered about the importance of trends in the businesses around you and how that could determine their degree of success? Manufacturing businesses are an important sector of our life where crucial aspects of it are dependent on these businesses. The Kinder Institute of Urban Research at Rice University in Houston has an interesting data set about the manufacturing businesses in Houston. The data set provides insight into the different business types and their corresponding revenue categories in 2018 - 2021. 
 Analyzing the data will be done by using the R language and its dplyr and ggplot2 packages—known for data science, manipulation, and visualization—for trend analysis. Also, shiny, and plotly applications may be implemented for data visualization. These tools will illustrate trends of manufacturing businesses in Houston, emphasizing the successful businesses in the area. To sum up, analyzing this data and highlighting these trends will help many people, of them are individuals in academia who might use the trends in their studies and research. 
 
-
-
-## Packages Required
+### Packages Required
 The following packages are attached to the IDE for analyzing the data. 
-
-```{r}
-install.packages("viridis")
-```
-
 
 ```{r 1 libraries}
 library(rmarkdown, quietly = TRUE) # this package is for dynamic markdown (.rmd)                                      file
@@ -46,9 +40,10 @@ library(stringr, quietly = TRUE)   # this package is for text data, for the     
 
 
 ## Data Preparation 
+The following data set will be used in this project. 
 
-```{r 2 load data}
-library(readr)
+```{r 2 import data}
+# import `vi_manuf2018plus` data set
 vi_manuf2018plus <- read_csv("vi_manuf2018plus.csv")
 View(vi_manuf2018plus)
 ```
@@ -64,14 +59,11 @@ The dataset is available for download on this website and is organized into thre
 Please be aware that rows displaying subtotals for combinations of the naics_code, employee_size, and revenue_category variables are included.
 The 2018 dataset has a date stamp of 2/12/2019. The datasets for 2019, 2020, and 2021 include date stamps from May or June of their respective years.
 
-### Data Import 
-Data was imported to the IDE, and it has `r nrow(vi_manuf2018plus)` observations of `r ncol(vi_manuf2018plus)` variables.
-
-
 ```{r 3 glimpse}
 # glimpse function display info about the data set
 glimpse(vi_manuf2018plus) 
 ```
+
 Now, data cleaning. The data set will be scanned and checked for any missing or duplicate values. But before that, checking data types in the data set comes first. 
 
 ```{r 4 data types}
@@ -81,8 +73,8 @@ data_types <- sapply(vi_manuf2018plus, class)
 # print
 data_types
 ```
-Now, check for missing values. 
 
+Now, check for missing values. This code will return the total number of occurrences of the NA values in the data set.
 
 ```{r 5 missing values}
 # check for missing values
@@ -93,25 +85,35 @@ missing_val <- vi_manuf2018plus %>%
 missing_val
 ```
 
+The NA values rows will create inaccuracies and must be deleted.
 
 ```{r 6 del missing values}
 # deleting rows with missing values
 vi_manuf2018plus <- na.omit(vi_manuf2018plus)
 ```
-It seems that this data set has some missing values. These rows will be dropped from the data set. 
+
+Upon eye-blinking the data set. There are different values other than the ones in the column. This code will filter and find the count of different values that occurred in the data set.
 
 ```{r 7 outliers}
 # filter for outliers  
 outliers <- vi_manuf2018plus %>%
   apply(2, function(x) !any(str_detect(x, regex("Total", ignore_case = TRUE))))
 
+outliers <- vi_manuf2018plus %>%
+  apply(2, function(x) !any(str_detect(x, regex("All businesses with NAICS codes starting with 311-316, 321-327, 331-337, 339", ignore_case = TRUE))))
+
 # find the occurrences of outliers
 outliers_total_count <- sum(apply(vi_manuf2018plus, 2, function(x) grepl("Total", x, ignore.case = TRUE)))
 
+# find the occurrences of outliers
+outliers_total_all <- sum(apply(vi_manuf2018plus, 2, function(x) grepl("All businesses with NAICS codes starting with 311-316, 321-327, 331-337, 339", x, ignore.case = TRUE)))
+
 # print
 outliers_total_count 
+outliers_total_all
 ```
-Finally, upon visually checking for outliers, found an unusual value in the `revenue_category` column, which is “Total”, which looks oddly different than its column values. These values will be dropped as well. 
+
+Due to the inaccuracy this value will cause in the interpretation of this data set, the rows with this different value will be dropped as well.
 
 ```{r 8 del outliers}
 # delete the outliers values from the data set
@@ -119,13 +121,19 @@ vi_manuf2018plus <- vi_manuf2018plus %>%
   rowwise() %>%
   filter(!any(str_detect(across(everything()), regex("Total", ignore_case = TRUE))))
 
+vi_manuf2018plus <- vi_manuf2018plus %>%
+  rowwise() %>%
+  filter(!any(str_detect(across(everything()), regex("All businesses with NAICS codes starting with 311-316, 321-327, 331-337, 339", ignore_case = TRUE))))
+
 # assign the outliers count variable to the deletion code for later inspection
-outliers_total_count <- sum(apply(vi_manuf2018plus, 2, function(x) any(str_detect(x, regex("Total", ignore_case = TRUE)))))
+outliers_total_count <- sum(apply(vi_manuf2018plus, 2, function(x) any(str_detect(x, regex("Total", ignore_case = TRUE))))) 
+
+outliers_total_all <- vi_manuf2018plus %>%
+  rowwise() %>%
+  filter(!any(str_detect(across(everything()), regex("All businesses with NAICS codes starting with 311-316, 321-327, 331-337, 339", ignore_case = TRUE)))) 
 ```
 
-
-All the variables will be used in the analysis.
-Here is a `tibble` display of the clean data. 
+In order to check that the data is clean, the total number of instances must be zeros for both inaccuracies.
 
 ```{r 9 debug}
 # check and debug after data clean up
@@ -140,11 +148,14 @@ total_na
 
 # check outliers number of occurrences
 outliers_total_count
+outliers_total_all
 
 # check data types for each column again to check
 data_types
 ```
-Fundamentally, yr is the year that the data was collected. `naics_code` and `naics_code_descr` are for the NAICS code mentioned above, and `revenue_category` has the revenues of those businesses categorized in different ranges. `employee_size` is a range of the number of employees in that company, while `number_of_biz` is the count of businesses in the criteria that is in the row. 
+
+All the variables will be used in the analysis.
+Here is a `tibble` display of the clean data. 
 
 ```{r 10 data tibble}
 # illustrate data set as tibble
@@ -154,7 +165,11 @@ tibble <- as_tibble(vi_manuf2018plus)
 tibble
 ```
 
+Fundamentally, yr is the year that the data was collected. `naics_code` and `naics_code_descr` are for the NAICS code mentioned above, and `revenue_category` has the revenues of those businesses categorized in different ranges. `employee_size` is a range of the number of employees in that company, while `number_of_biz` is the count of businesses in the criteria that is in the row. 
+
 ## Explatory Data Analysis 
+
+This data set has `naics_code_descr`, `revenue_category`, and `employee_size` all with different categories. All distinct categories in these 3 columns will be shown as a guide to interpret the data set.
 
 ```{r 11 distinct categories}
 # find distinct categories in each column 
@@ -186,6 +201,7 @@ distinct <- list(
 distinct
 ```
 
+To take a closer look on the success of these businesses, their yearly growth can be analyzed based on thier counts. 
 
 ```{r 12.1 yearly growth}
 # calculating the yearly growth
@@ -200,64 +216,64 @@ yearly_growth$short_descr <- abbreviate(yearly_growth$naics_code_descr)
 # print
 yearly_growth
 ```
+Here is a bar `plotly` plot that visualizes the yearly growth of all the businesses.
 
+*Note:* To insure accuracy, rows with NA values are excluded from `yearly_growth`. Necessary conversions are done to the columns so values are used in calculations and visualization. To ensure visuals visibility, naics_code_descr column categories are
 
 ```{r 12.2 plot}
 # exclude rows with NA value
 yearly_growth <- yearly_growth %>% filter(!is.na(growth_rate))
 yearly_growth <- yearly_growth %>% filter(!is.na(number_of_biz))
 
-# convert growth_rate column to numeric
+# convert `growth_rate` column to numeric
 yearly_growth$growth_rate <- as.numeric(str_remove(yearly_growth$growth_rate, "%"))
 
-# convert yr column to numeric and naics_code_descr column to factor
+# convert `yr` column to numeric and `naics_code_descr` column to factor
 yearly_growth$naics_code_descr <- as.factor(yearly_growth$naics_code_descr)
 
 # sort the data frame by yr 
 yearly_growth <- yearly_growth %>% arrange(yr) 
 
 
-# plotly plot
-plot_ly(yearly_growth, x = ~yr, y = ~growth_rate, type = 'bar', marker = list(color = ~growth_rate, colorscale = 'Bluered')) %>%
-  layout(title = "Yearly Growth Rate by Business Category",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Growth Rate (%)"))
+# Plotly bar plot
+plot_ly(yearly_growth, 
+        x = ~reorder(short_descr, -growth_rate), 
+        y = ~growth_rate, 
+        type = "bar", 
+        marker = list(color = 'red')) %>%
+  layout(title = "Growth Rate by Category",
+         xaxis = list(title = "Category", tickangle = -90),
+         yaxis = list(title = "Growth Rate (%)", tickformat = ".0%"))
 ```
 
+Machinary manufacturing has finally recorded the highest growth rate, while apparel manufacturing recorded the least growth rate.
+
+Here is a similar plotly plot, but a scatter one. 
 
 ```{r 12.3 plot}
-# plotly plot
-plot_ly(yearly_growth, x = ~ yr, y = ~growth_rate, type = 'scatter', mode = 'markers', marker = list(color = ~ 'black')) %>%
-  layout(title = "Yearly Growth Rate by Business Category",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Growth Rate (%)"))
-```
-
-
-```{r 12.4 plot}
-# ggplot
-ggplot(yearly_growth, aes(x = as.factor(yr), y = growth_rate)) +
-  geom_boxplot(fill = "grey") +
-  labs(title = "Yearly Growth Rate by Business Category", x = "Year", y = "Growth Rate (%)")
-```
-
-
-```{r 12.5 plot}
-# ggplot 
-ggplot(yearly_growth, aes(x = reorder(short_descr, -growth_rate), y = growth_rate)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  labs(x = "Category", y = "Growth Rate (%)", title = "Growth Rate by Category") +
-  scale_y_continuous(labels = scales::percent)
-```
-
-```{r 12.6 plot}
-# plotly plot
-plot_ly(yearly_growth, x = ~reorder(short_descr, -growth_rate), y = ~growth_rate, type = 'bar', name = 'Growth Rate') %>%
-  layout(title = "Growth Rate by Category",
+# plotly scatter plot
+plot_ly(yearly_growth, x = ~ short_descr, y = ~growth_rate, type = 'scatter', mode = 'markers', marker = list(color = ~ 'red')) %>%
+  layout(title = "Yearly Growth Rate By Category",
          xaxis = list(title = "Category"),
          yaxis = list(title = "Growth Rate (%)"))
 ```
+
+Here is a plotly box plot of the businesses yearly growth by category.  
+
+```{r 12.4 plot}
+# plotly box plot
+plot_ly(yearly_growth, 
+        x = ~as.factor(short_descr), 
+        y = ~growth_rate, 
+        type = "box", 
+        color = ~as.factor(yr), 
+        colors = "red") %>%
+  layout(title = "Yearly Growth Rate By Category",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Growth Rate (%)"))
+```
+
+Another way to look at the success of these businesses would be through an analysis of the number of businesses in each category.
 
 ```{r 13.1 num of biz analysis}
 # calculate the number of businesses 
@@ -273,43 +289,49 @@ num_of_biz_analysis$short_descr <- abbreviate(num_of_biz_analysis$naics_code_des
 num_of_biz_analysis
 
 ```
-
+There is the total number of bushinesses of each business categories. 
 
 ```{r 13.2 plot}
-# ggplot
-ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = total_number_of_biz, fill = short_descr)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  labs(title = "Number of Business Analysis", x = "NAICS Code Description", y = "Number of Businesses", fill = "NAICS Code Description") +
-  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, hjust = 1))
+# plotly bar plot
+plot_ly(num_of_biz_analysis, 
+               x = ~reorder(short_descr, -total_number_of_biz), 
+               y = ~total_number_of_biz, 
+               type = 'bar', 
+               color = ~short_descr, 
+               colors = 'Dark2') %>%
+  layout(title = "Number of Business Analysis for Each Category",
+         xaxis = list(title = "NAICS Code Description", tickangle = -90),
+         yaxis = list(title = "Number of Businesses"))
 ```
+Miscellaneous Manufacturing here dominates the majority, while Leather and Allied Product Manufacturing is so rare.
+
+Here is a scatter plot that demonstrates how dominant / rare the businesses are.
 
 ```{r 13.3 plot}
-# plotly bar plot
-plot_ly(num_of_biz_analysis, x = ~reorder(short_descr, -total_number_of_biz), y = ~total_number_of_biz, type = 'bar', name = 'Total Number of Businesses') %>%
-  layout(title = "Number of Business Analysis",
-         xaxis = list(title = "NAICS Code Description"),
-         yaxis = list(title = "Total Number of Businesses"))
-
-```
-
-```{r 13.4 plot}
-# plotly plot
-ggplot(num_of_biz_analysis, aes(x = reorder(short_descr, -total_number_of_biz), y = short_descr)) +
-  geom_point(color = 'steelblue') +
-  labs(title = "Total Number of Businesses by Category", x = "Business Category", y = "Total Number of Businesses") +
-  coord_flip()
-
-```
-
-```{r 13.5 plot}
-# plotly plot
-plot_ly(num_of_biz_analysis, x = ~total_number_of_biz, y = ~short_descr, type = 'bar', orientation = 'a') %>%
+# plotly scatter plot
+plot_ly(num_of_biz_analysis, 
+               x = ~total_number_of_biz, 
+               y = ~reorder(short_descr, -total_number_of_biz), 
+               type = 'scatter', 
+               mode = 'markers', 
+               marker = list(color = 'red')) %>%
   layout(title = "Total Number of Businesses by Category",
          xaxis = list(title = "Total Number of Businesses"),
          yaxis = list(title = "Business Category"))
 ```
 
+
+Here is the same illustration but in a bar plot. 
+
+```{r 13.5 plot}
+# plotly bar plot
+plot_ly(num_of_biz_analysis, x = ~total_number_of_biz, y = ~short_descr, type = 'bar', orientation = 'h', marker = list(color = 'red')) %>%
+  layout(title = "Total Number of Businesses by Category",
+         xaxis = list(title = "Total Number of Businesses"),
+         yaxis = list(title = "Business Category"))
+```
+
+Money! Whenever there is money, there is success. So, showing how successful these business categories can be through revenue per business analysis.
  
 ```{r 14.1 revenue per biz}
 # assign a unique numeric ID to each revenue category
@@ -333,23 +355,33 @@ revenue_per_biz$short_descr <- abbreviate(revenue_per_biz$naics_code_descr)
 # print
 revenue_per_biz
 ```
-The average revenue per business can indeed be a measure of success, but it’s important to note that it’s not the only measure. A higher average revenue per business generally indicates that the businesses in that category are able to generate more revenue, which could be a sign of success. However, this doesn’t necessarily mean that they are more profitable, as they could also have higher costs.
 
 ```{r 14.2 plot}
 # plotly bar plot
-plot_ly(revenue_per_biz, x = ~reorder(short_descr, -avg_revenue_per_biz), y = ~avg_revenue_per_biz, type = 'bar', name = 'Average Revenue per Business') %>%
+plot_ly(revenue_per_biz, x = ~reorder(short_descr, -avg_revenue_per_biz), y = ~avg_revenue_per_biz, type = 'bar', name = 'Average Revenue per Business', marker = list(color = 'red')) %>%
   layout(title = "Average Revenue per Business for Each Category",
          xaxis = list(title = "NAICS Code Description"),
          yaxis = list(title = "Average Revenue per Business"))
-
 ```
 
+It is clear that most of the categories have revenues close to each other, with Food Manufacturing having the highest average revenue and Apparel Manufacturing having the lowest average revenue. 
+ 
+Here is a scatter plot illustrating the business category averages of revenue.
 
 ```{r 14.3 plot}
 # plotly plot
-plot_ly(revenue_per_biz, x = ~short_descr, y = ~avg_revenue_per_biz, type = 'scatter', mode = 'markers', name = 'Average Revenue per Business') %>%
+plot_ly(revenue_per_biz, x = ~short_descr, y = ~avg_revenue_per_biz, type = 'scatter', mode = 'markers', name = 'Average Revenue per Business', marker = list(color = 'red')) %>%
   layout(title = "Average Revenue per Business for Each Category",
          xaxis = list(title = "NAICS Code Description"),
          yaxis = list(title = "Average Revenue per Business"))
 ```
 
+Finally, the focus of this project was the exploration and analysis of manufacturing businesses in Houston, as detailed in a data set from the Kinder Institute of Urban Research at Rice University. The data set provided a wealth of insights into various business types and their corresponding revenue categories for the year 2018 - 2021. 
+
+To delve into this data, the R programming language was employed, leveraging its powerful packages such as dplyr and ggplot2. These packages are renowned for their capabilities in data science, manipulation, and visualization. Additionally, applications like Shiny and Plotly were used to create interactive and dynamic visualizations. The analysis was centered around three key aspects: the yearly growth of businesses, the total number of businesses in each category, and the average revenue per business for each category.
+
+The analysis unveiled several intriguing trends. For instance, 'Miscellaneous Manufacturing' emerged as the most common business category, while 'Apparel Manufacturing' was the least common. In terms of growth rate, 'Machinery Manufacturing' recorded the highest, indicating a thriving sector. When it came to revenue, most categories were found to have similar revenues, with 'Food Manufacturing' leading the pack and 'Apparel Manufacturing' at the bottom.
+
+These findings offer valuable insights into the performance and trends of different business categories. They can guide stakeholders, including academics and researchers, in making informed decisions and conducting further studies. The trends highlighted in this analysis are particularly useful for understanding the dynamics of the manufacturing sector in Houston.
+
+While the analysis provides useful insights, it does have some limitations. It assumes the accuracy and currency of the data, which may not always hold true. Also, it does not take into account other potentially influential factors such as geographical location, market conditions, and government policies. Future work could aim to incorporate these factors into the analysis and employ more sophisticated statistical techniques to model and predict trends.
